@@ -1,5 +1,5 @@
 from utils.init_mysql_connection import get_mysql_connection, get_postgres_connection
-from fetch_to_raw_database_api import fetch_to_raw_database_by_api
+from scripts.fetch.fetch_to_raw_database_api import fetch_to_raw_database_by_api
 from load_to_dw import load_data_to_dw
 from init_database.init_database import init_postgres_database, init_sql_database
 from init_database.init_condition import init_master_condition

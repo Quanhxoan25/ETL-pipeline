@@ -1,0 +1,47 @@
+import pandas as pd
+import os
+from sqlalchemy import text
+import json
+from utils.init_mysql_connection import get_mysql_connection
+from utils.data_base_ops import insert_to_sql_raw
+from utils.pipeline import logger
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+file_name = os.path.join(current_dir, "..", "..", "assets",
+                         "data", "GlobalWeatherRepository.csv")
+
+
+def fetch_to_raw_database_by_csv(mysql_connection):
+    logger.info("Starting read csv file into database")
+    try:
+        chunk_size = 10000
+        total_row = 0
+
+        query = text("""
+            INSERT INTO data_raw (source, raw_content) 
+            VALUES (:source, :raw_data)
+        """)
+
+        chunks = pd.read_csv(file_name, encoding="utf-8", chunksize=chunk_size)
+
+        for i, chunk in enumerate(chunks):
+            rows = chunk.to_dict(orient='records')
+            for row in rows:
+                raw_data = json.dumps(row, ensure_ascii=False)
+                insert_to_sql_raw(mysql_connection,
+                                  source="CSV", raw_data=raw_data)
+
+            mysql_connection.commit()
+            total_row += len(chunk)
+            logger.info(
+                f"Finished loading batch {i+1} ({len(chunk)} rows). Cumulative total: {total_row} rows.")
+
+        logger.info("Success")
+    except Exception as e:
+        logger.info(f"Somethings went wrongs: {e}", exc_info=True)
+
+
+if __name__ == "__main__":
+    connection = get_mysql_connection()
+    fetch_to_raw_database_by_csv(connection)

@@ -9,10 +9,7 @@ def load_data_to_dw(mysql_connection, postgres_connection):
             print("Checking your connection to your database")
             return
 
-        mysql_cursor = mysql_connection.cursor(pymysql.cursors.DictCursor)
-        postgres_cursor = postgres_connection.cursor()
-
-        sync_to_postgres_warehouse(mysql_cursor, postgres_cursor)
+        sync_to_postgres_warehouse(mysql_connection, postgres_connection)
         postgres_connection.commit()
     except Exception as e:
         print(f"Having trouble on commiting data: {e}")

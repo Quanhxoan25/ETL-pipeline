@@ -1,3 +1,4 @@
+from sqlalchemy import create_engine
 import os
 from dotenv import load_dotenv
 import pymysql
@@ -10,18 +11,17 @@ load_dotenv()
 
 def get_mysql_connection():
     try:
-        # Khoi tao ket noi voi database sql
-        connection = pymysql.connect(
-            host=os.getenv("DB_HOST"),
-            # tra ve dang int cho cong port
-            port=int(os.getenv("DB_PORT", 3306)),
-            user=os.getenv("DB_USERNAME"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_DATABASE"),
-            charset="utf8mb4",
-            client_flag=pymysql.constants.CLIENT.MULTI_STATEMENTS
-        )
-        return connection
+        host = os.getenv("DB_HOST", "localhost")
+        database = os.getenv("DB_DATABASE")
+        user = os.getenv("DB_USERNAME")
+        password = os.getenv("DB_PASSWORD")
+        port = os.getenv("DB_PORT", "3306")
+
+        DATABASE_URL = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+
+        engine = create_engine(DATABASE_URL)
+
+        return engine.connect()
     except Exception as e:
         # Tra ve loi neu nhu ket noi khong thanh cong
         print(f"Having troubleshot while connecting to database {e}")
@@ -30,14 +30,18 @@ def get_mysql_connection():
 
 def get_postgres_connection():
     try:
-        connection = psycopg2.connect(
-            host=os.getenv("PG_HOST", "localhost"),
-            database=os.getenv("PG_DATABASE"),
-            user=os.getenv("PG_USERNAME"),
-            password=os.getenv("PG_PASSWORD"),
-            port=int(os.getenv("PG_PORT", 5432))
-        )
-        return connection
+        host = os.getenv("PG_HOST", "localhost")
+        database = os.getenv("PG_DATABASE")
+        user = os.getenv("PG_USERNAME")
+        password = os.getenv("PG_PASSWORD")
+        port = os.getenv("PG_PORT", "5432")
+
+        DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
+
+        engine = create_engine(DATABASE_URL)
+
+        return engine.connect()
+
     except Exception as e:
         print(f"Having troubleshot while connecting to database {e}")
         return None

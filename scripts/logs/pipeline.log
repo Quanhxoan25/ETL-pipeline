@@ -1,0 +1,66 @@
+2026-07-10 21:37:22 [INFO] Succesfully commit Hanoi
+2026-07-10 21:37:23 [INFO] Succesfully commit Ho Chi Minh City
+2026-07-10 21:37:24 [INFO] Succesfully commit Da Nang
+2026-07-10 21:37:24 [INFO] Succesfully commit Hai Phong
+2026-07-10 21:37:25 [INFO] Succesfully commit Can Tho
+2026-07-10 21:37:25 [INFO] Succesfully commit Nha Trang
+2026-07-10 21:37:26 [INFO] Succesfully commit Da Lat
+2026-07-10 21:37:26 [INFO] Succesfully commit Hue
+2026-07-10 21:37:27 [INFO] Succesfully commit Vung Tau
+2026-07-10 21:37:28 [INFO] Succesfully commit Ha Long
+2026-07-10 21:37:28 [INFO] Succesfully commit Tokyo
+2026-07-10 21:37:29 [INFO] Succesfully commit Seoul
+2026-07-10 21:37:29 [INFO] Succesfully commit Bangkok
+2026-07-10 21:37:30 [INFO] Succesfully commit Singapore
+2026-07-10 21:37:31 [INFO] Succesfully commit Kuala Lumpur
+2026-07-10 21:37:31 [INFO] Succesfully commit Jakarta
+2026-07-10 21:37:32 [INFO] Succesfully commit Manila
+2026-07-10 21:37:32 [INFO] Succesfully commit Beijing
+2026-07-10 21:37:33 [INFO] Succesfully commit Shanghai
+2026-07-10 21:37:33 [INFO] Succesfully commit Hong Kong
+2026-07-10 21:37:34 [INFO] Succesfully commit Taipei
+2026-07-10 21:37:35 [INFO] Succesfully commit New Delhi
+2026-07-10 21:37:35 [INFO] Succesfully commit Mumbai
+2026-07-10 21:37:36 [INFO] Succesfully commit Dubai
+2026-07-10 21:37:36 [INFO] Succesfully commit London
+2026-07-10 21:37:37 [INFO] Succesfully commit Paris
+2026-07-10 21:37:38 [INFO] Succesfully commit Berlin
+2026-07-10 21:37:38 [INFO] Succesfully commit Rome
+2026-07-10 21:37:39 [INFO] Succesfully commit Madrid
+2026-07-10 21:37:39 [INFO] Succesfully commit Amsterdam
+2026-07-10 21:37:40 [INFO] Succesfully commit Brussels
+2026-07-10 21:37:41 [INFO] Succesfully commit Vienna
+2026-07-10 21:37:41 [INFO] Succesfully commit Prague
+2026-07-10 21:37:42 [INFO] Succesfully commit Moscow
+2026-07-10 21:37:42 [INFO] Succesfully commit New York
+2026-07-10 21:37:43 [INFO] Succesfully commit Los Angeles
+2026-07-10 21:37:43 [INFO] Succesfully commit Chicago
+2026-07-10 21:37:44 [INFO] Succesfully commit Washington
+2026-07-10 21:37:45 [INFO] Succesfully commit Toronto
+2026-07-10 21:37:45 [INFO] Succesfully commit Vancouver
+2026-07-10 21:37:46 [INFO] Succesfully commit Mexico City
+2026-07-10 21:37:46 [INFO] Succesfully commit Sao Paulo
+2026-07-10 21:37:47 [INFO] Succesfully commit Rio de Janeiro
+2026-07-10 21:37:48 [INFO] Succesfully commit Buenos Aires
+2026-07-10 21:37:48 [INFO] Succesfully commit Sydney
+2026-07-10 21:37:49 [INFO] Succesfully commit Melbourne
+2026-07-10 21:37:49 [INFO] Succesfully commit Auckland
+2026-07-10 21:37:50 [INFO] Succesfully commit Cairo
+2026-07-10 21:37:51 [INFO] Succesfully commit Cape Town
+2026-07-10 21:39:12 [INFO] Finished loading batch 1 (10000 rows). Cumulative total: 10000 rows.
+2026-07-10 21:39:20 [INFO] Finished loading batch 2 (10000 rows). Cumulative total: 20000 rows.
+2026-07-10 21:39:28 [INFO] Finished loading batch 3 (10000 rows). Cumulative total: 30000 rows.
+2026-07-10 21:39:36 [INFO] Finished loading batch 4 (10000 rows). Cumulative total: 40000 rows.
+2026-07-10 21:39:46 [INFO] Finished loading batch 5 (10000 rows). Cumulative total: 50000 rows.
+2026-07-10 21:39:56 [INFO] Finished loading batch 6 (10000 rows). Cumulative total: 60000 rows.
+2026-07-10 21:40:06 [INFO] Finished loading batch 7 (10000 rows). Cumulative total: 70000 rows.
+2026-07-10 21:40:15 [INFO] Finished loading batch 8 (10000 rows). Cumulative total: 80000 rows.
+2026-07-10 21:40:23 [INFO] Finished loading batch 9 (10000 rows). Cumulative total: 90000 rows.
+2026-07-10 21:40:32 [INFO] Finished loading batch 10 (10000 rows). Cumulative total: 100000 rows.
+2026-07-10 21:40:40 [INFO] Finished loading batch 11 (10000 rows). Cumulative total: 110000 rows.
+2026-07-10 21:40:48 [INFO] Finished loading batch 12 (10000 rows). Cumulative total: 120000 rows.
+2026-07-10 21:40:56 [INFO] Finished loading batch 13 (10000 rows). Cumulative total: 130000 rows.
+2026-07-10 21:41:04 [INFO] Finished loading batch 14 (10000 rows). Cumulative total: 140000 rows.
+2026-07-10 21:41:12 [INFO] Finished loading batch 15 (10000 rows). Cumulative total: 150000 rows.
+2026-07-10 21:41:13 [INFO] Finished loading batch 16 (2412 rows). Cumulative total: 152412 rows.
+2026-07-10 21:41:13 [INFO] Success

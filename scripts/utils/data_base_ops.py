@@ -1,49 +1,20 @@
-def insert_to_sql_raw(cursor, abbre_name, location_data, weather_data):
-    sql_location_query = """
-            INSERT INTO raw_location_infor
-            (city_id, city_name, region, country, lat_n, lon_n, tz_id, localtime_epoch, local_time)
-            VALUES (%s, %s,%s, %s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE country=VALUES(country)
-        """
-
-    cursor.execute(sql_location_query, (abbre_name, location_data.get('name'), location_data.get('region'), location_data.get('country'), location_data.get(
-                   'lat'), location_data.get('lon'), location_data.get('tz_id'), location_data.get('localtime_epoch'), location_data.get('localtime')))
-
-    sql_weather_query = """
-            INSERT INTO raw_current_weather
-            (city_id, updated_time, temperature, feels_like, humidity, wind_speed, precipitation, cloud_cover, uv_index, chance_of_rain, chance_of_snow, condition_code) 
-            VALUES (%s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE 
-                updated_time = VALUES(updated_time),
-                temperature = VALUES(temperature),
-                feels_like = VALUES(feels_like),
-                humidity = VALUES(humidity),
-                wind_speed = VALUES(wind_speed),
-                precipitation = VALUES(precipitation),
-                cloud_cover = VALUES(cloud_cover),
-                uv_index = VALUES(uv_index),
-                chance_of_rain = VALUES(chance_of_rain),
-                chance_of_snow = VALUES(chance_of_snow),
-                condition_code = VALUES(condition_code);
-        """
-    cursor.execute(sql_weather_query,
-                   (
-                       abbre_name,
-                       weather_data.get("last_updated"),
-                       weather_data.get("temp_c"),
-                       weather_data.get('feelslike_c'),
-                       weather_data.get('humidity'),
-                       weather_data.get('wind_kph'),
-                       weather_data.get('pressure_mb'),
-                       weather_data.get('cloud'),
-                       weather_data.get('uv'),
-                       weather_data.get('chance_of_rain'),
-                       weather_data.get('chance_of_snow'),
-                       weather_data.get('condition')['code']
-                   ))
+import pymysql
+from sqlalchemy import text
 
 
-def sync_to_postgres_warehouse(mysql_cursor, postgre_sql_cursor):
+def insert_to_sql_raw(mysql_connection, source, raw_data):
+    sql_query = text("""
+            INSERT INTO data_raw (source, raw_data)
+            VALUES (:source, :raw_data)
+        """)
+
+    mysql_connection.execute(
+        sql_query, {"source": source, "raw_data": raw_data})
+
+
+def sync_to_postgres_warehouse(mysql_conncetion, postgre_sql_connection):
+    mysql_cursor = mysql_conncetion.cursor(pymysql.cursors.DictCursor)
+    postgre_sql_cursor = postgre_sql_connection.cursor()
     sql_insert_dim_city = """
         INSERT INTO dim_city (city_id, city_name)
         VALUES (%s, %s) 
@@ -67,10 +38,16 @@ def sync_to_postgres_warehouse(mysql_cursor, postgre_sql_cursor):
         "SELECT city_id, city_name FROM raw_location_infor")
     cities = mysql_cursor.fetchall()
     for city in cities:
-        print(city)
-        postgre_sql_cursor.execute(
-            sql_insert_dim_city, (city["city_id"], city["city_name"]))
-        print(f"Commit successfully {city["city_name"]}")
+        try:
+
+            print(city)
+            postgre_sql_cursor.execute(
+                sql_insert_dim_city, (city["city_id"], city["city_name"]))
+            print(f"Commit successfully {city["city_name"]}")
+        except Exception as e:
+            postgre_sql_connection.rollback()
+            print(f"Dòng dữ liệu của {city['city_name']} bị lỗi: {e}")
+            continue
 
     mysql_cursor.execute("SELECT * FROM weather_condition")
     conditions = mysql_cursor.fetchall()
