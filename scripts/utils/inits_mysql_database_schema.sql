@@ -3,4 +3,10 @@ CREATE TABLE IF NOT EXISTS data_raw (
 	source VARCHAR(20) NOT NULL,
 	created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	raw_data LONGTEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS condition_weather (
+	condition_code INT NOT NULL PRIMARY KEY,
+	condition_day VARCHAR(100),
+	condition_night VARCHAR(100)
 )

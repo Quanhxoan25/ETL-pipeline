@@ -12,11 +12,23 @@ create table IF NOT EXISTS fact_historical_weather (
 	chance_of_snow INT,
 	condition_code INT,
 	
-	primary key (city_id, updated_time)
+	PRIMARY KEY (city_name, country, updated_time),
+    FOREIGN KEY (city_name, country) REFERENCES dim_city(city_name, country),
+    FOREIGN KEY (condition_code) REFERENCES dim_condition_weather(condition_code)
 );
 create table IF NOT EXISTS dim_city(
-	city_id varchar(10) primary key,
-	city_name varchar(50) not NULL
+	city_name varchar(50) not NULL,
+	country  VARCHAR(20) NOT NULL,
+	lat_n DECIMAL (5,2), 
+	lon_n DECIMAL (5,2)
+
+	PRIMARY KEY (city_name, country)
+	FOREIGN KEY (country) REFERENCES dim_country(country)
+)
+
+create table if not exists dim_country(
+	country VARCHAR(20) NOT NULL PRIMARY KEY, 
+	timezone VARCHAR(50)
 )
 
 CREATE TABLE IF NOT EXISTS dim_condition_weather(
