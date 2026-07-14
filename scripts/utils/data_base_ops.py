@@ -12,27 +12,27 @@ def insert_to_sql_raw(mysql_connection, source, raw_data):
         sql_query, {"source": source, "raw_data": raw_data})
 
 
-def sync_to_postgres_warehouse(mysql_conncetion, postgre_sql_connection):
+"""def sync_to_postgres_warehouse(mysql_conncetion, postgre_sql_connection):
     mysql_cursor = mysql_conncetion.cursor(pymysql.cursors.DictCursor)
     postgre_sql_cursor = postgre_sql_connection.cursor()
-    sql_insert_dim_city = """
+    sql_insert_dim_city =
         INSERT INTO dim_city (city_id, city_name)
         VALUES (%s, %s) 
         ON CONFLICT (city_id) DO UPDATE SET city_name = EXCLUDED.city_name
-    """
+    
 
-    sql_insert_fact_weather = """
+    sql_insert_fact_weather = 
         INSERT INTO fact_historical_weather 
         (city_id, updated_time, temperature, feels_like, humidity, wind_speed, precipitation, cloud_cover, uv_index, chance_of_rain, chance_of_snow, condition_code)
         VALUES (%s, %s,%s, %s,%s, %s,%s, %s,%s, %s,%s, %s)
         ON CONFLICT (city_id, updated_time) DO NOTHING
-    """
+    
 
-    sql_insert_dim_condition_weather = """
+    sql_insert_dim_condition_weather = 
         INSERT INTO dim_condition_weather (condition_code, condition_day, condition_night)
         VALUES (%s, %s, %s) 
         ON CONFLICT (condition_code) DO NOTHING
-    """
+    
 
     mysql_cursor.execute(
         "SELECT city_id, city_name FROM raw_location_infor")
@@ -70,3 +70,4 @@ def sync_to_postgres_warehouse(mysql_conncetion, postgre_sql_connection):
             postgre_sql_cursor.execute(sql_insert_fact_weather, (row["city_id"], row["updated_time"], row["temperature"], row["feels_like"], row["humidity"],
                                                                  row["wind_speed"], row["precipitation"], row["cloud_cover"], row["uv_index"], row["chance_of_rain"], row["chance_of_snow"], row["condition_code"]))
             print(f"Commit successfullu {row["city_id"]}")
+"""

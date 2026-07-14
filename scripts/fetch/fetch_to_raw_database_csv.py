@@ -4,13 +4,14 @@ from sqlalchemy import text
 import json
 from utils.init_mysql_connection import get_mysql_connection
 from utils.data_base_ops import insert_to_sql_raw
-from utils.pipeline import logger
+from utils.logger import logger
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 file_name = os.path.join(current_dir, "..", "..", "assets",
                          "data", "GlobalWeatherRepository.csv")
 
+logger.info(os.path.exists(file_name))
 
 def fetch_to_raw_database_by_csv(mysql_connection):
     logger.info("Starting read csv file into database")
@@ -19,7 +20,7 @@ def fetch_to_raw_database_by_csv(mysql_connection):
         total_row = 0
 
         query = text("""
-            INSERT INTO data_raw (source, raw_content) 
+            INSERT INTO data_raw (source, raw_data) 
             VALUES (:source, :raw_data)
         """)
 
@@ -27,12 +28,14 @@ def fetch_to_raw_database_by_csv(mysql_connection):
 
         for i, chunk in enumerate(chunks):
             rows = chunk.to_dict(orient='records')
+            params = []
             for row in rows:
                 raw_data = json.dumps(row, ensure_ascii=False)
-                insert_to_sql_raw(mysql_connection,
-                                  source="CSV", raw_data=raw_data)
-
-            mysql_connection.commit()
+                params.append({
+                    "source": "CSV",
+                    "raw_data": raw_data
+                })
+            mysql_connection.execute(query, params)
             total_row += len(chunk)
             logger.info(
                 f"Finished loading batch {i+1} ({len(chunk)} rows). Cumulative total: {total_row} rows.")

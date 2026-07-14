@@ -1,38 +1,57 @@
-create table IF NOT EXISTS fact_historical_weather (
-	city_id VARCHAR(10),
-	updated_time timestamp,
-	temperature DECIMAL(5,2),
-	feels_like DECIMAL(4,1),
-	humidity INT,
-	wind_speed DECIMAL(5, 2),
-	precipitation DECIMAL(9, 2),
-	cloud_cover INT,
-	uv_index DECIMAL(3, 1),
-	chance_of_rain INT,
-	chance_of_snow INT,
-	condition_code INT,
-	
-	PRIMARY KEY (city_name, country, updated_time),
-    FOREIGN KEY (city_name, country) REFERENCES dim_city(city_name, country),
-    FOREIGN KEY (condition_code) REFERENCES dim_condition_weather(condition_code)
-);
-create table IF NOT EXISTS dim_city(
-	city_name varchar(50) not NULL,
-	country  VARCHAR(20) NOT NULL,
-	lat_n DECIMAL (5,2), 
-	lon_n DECIMAL (5,2)
+DROP table if exists staging_dim_country;
+DROP table if exists staging_dim_city;
+DROP table if exists dim_country;
+DROP table if exists dim_city;
+DROP table if exists fact_historical_weather;
 
-	PRIMARY KEY (city_name, country)
-	FOREIGN KEY (country) REFERENCES dim_country(country)
-)
+CREATE TABLE IF NOT EXISTS staging_dim_country (
+    country VARCHAR(255),
+    timezone VARCHAR(100)
+);
+
+CREATE TABLE IF NOT EXISTS staging_dim_city (
+    city_name VARCHAR(255),
+    country VARCHAR(255),
+    lat_n NUMERIC(9, 2), 
+    lon_n NUMERIC(9, 2)
+);
+
+CREATE INDEX IF NOT EXISTS idx_stage_city_lookup ON staging_dim_city (city_name, country, lat_n, lon_n);
 
 create table if not exists dim_country(
-	country VARCHAR(20) NOT NULL PRIMARY KEY, 
-	timezone VARCHAR(50)
-)
+	country VARCHAR(100) NOT NULL PRIMARY KEY, 
+	timezone VARCHAR(100)
+);
 
-CREATE TABLE IF NOT EXISTS dim_condition_weather(
-	condition_code INT PRIMARY KEY,
-	condition_day VARCHAR(100),
-	condition_night VARCHAR(100)
-)
+create table IF NOT EXISTS dim_city(
+	city_name varchar(100) not NULL,
+	country  VARCHAR(100) NOT NULL,
+	lat_n DECIMAL (9,2), 
+	lon_n DECIMAL (9,2),
+
+	CONSTRAINT dim_city_unique PRIMARY KEY (lat_n, lon_n)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dim_city_name_country ON dim_city (city_name, country);
+CREATE INDEX IF NOT EXISTS idx_dim_city_country_geo ON dim_city (country, lat_n, lon_n);
+CREATE INDEX IF NOT EXISTS idx_dim_city_name_geo ON dim_city (city_name, lat_n, lon_n);
+
+create table IF NOT EXISTS fact_historical_weather (
+	city_name VARCHAR(100) NOT NULL,
+	country VARCHAR(100) NOT NULL,
+	updated_time timestamp NOT NULL,
+	temperature DECIMAL(9,2),
+	feels_like DECIMAL(9,2),
+	humidity INT,
+	wind_speed DECIMAL(9, 2),
+	precipitation DECIMAL(9, 2),
+	cloud_cover INT,
+	uv_index DECIMAL(9, 2),
+	chance_of_rain INT,
+	chance_of_snow INT,
+	condition VARCHAR(100),
+	
+	PRIMARY KEY (city_name, country, updated_time)
+    /* FOREIGN KEY (city_name, country) REFERENCES dim_city(city_name, country), */
+);
+

@@ -3,19 +3,25 @@ from utils.init_mysql_connection import get_api_connection, get_mysql_connection
 import pymysql
 from utils.data_base_ops import insert_to_sql_raw
 import os
-from filters.validate_weather_data import validate_weather_data
 import pandas as pd
-from utils.pipeline import logger
+from utils.logger import logger
+from sqlalchemy import text
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 file_name = os.path.join(current_dir, "..", "..", "assets",
                          "data", "location_key.json")
 
+logger.info(os.path.exists(file_name))
+
 
 def fetch_to_raw_database_by_api(mysql_connection, pg_connection):
     logger.info("Starting crawl data into database")
     try:
+        insert_query = text("""
+            INSERT INTO data_raw (source, raw_data) 
+            VALUES (:source, :raw_data)
+        """)
         cities = []
         try:
             query = "SELECT city_name FROM dim_city"
@@ -31,7 +37,7 @@ def fetch_to_raw_database_by_api(mysql_connection, pg_connection):
             with open(file_name, "r") as file:
                 json_data = json.load(file)
                 cities = [item['name'] for item in json_data]
-
+        params = []
         for city in cities:
             location = city
             response = get_api_connection(location)
@@ -42,10 +48,12 @@ def fetch_to_raw_database_by_api(mysql_connection, pg_connection):
 
                 raw_data = json.dumps(data, ensure_ascii=False)
 
-                insert_to_sql_raw(mysql_connection,
-                                  source="API", raw_data=raw_data)
+                params.append({
+                    "source": "API",
+                    "raw_data": raw_data
+                })
                 logger.info(f"Succesfully commit {location}")
-        mysql_connection.commit()
+                mysql_connection.execute(insert_query, params)
     except Exception as e:
         logger.critical(f"Somethings went wrongs: {e}", exc_info=True)
 

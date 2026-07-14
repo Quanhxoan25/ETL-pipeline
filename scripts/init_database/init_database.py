@@ -1,7 +1,8 @@
 import os
 from utils.init_mysql_connection import get_mysql_connection
 from utils.init_mysql_connection import get_postgres_connection
-from utils.pipeline import logger
+from utils.logger import logger
+from sqlalchemy import text
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,16 +20,15 @@ def execute_sql_file(connection, filepath):
     sql_script = None
     with open(filepath, "r") as f:
         sql_script = f.read().split(";")
-    print(sql_script)
     for command in sql_script:
         sql_command = command.strip()
         logger.info(sql_command)
         if sql_command:
             try:
-                connection.execute(sql_command)
+                connection.execute(text(sql_command))
                 logger.info("Building database successed")
             except Exception as e:
-                logger.critical(
+                logger.error(
                     f"Building database failed in {command}", exc_info=True)
                 return False
     return True
@@ -38,28 +38,23 @@ def init_sql_database(connection):
     try:
         if not connection:
             return
-        cursor = connection.cursor()
-        if execute_sql_file(cursor, sql_filename):
-            connection.commit()
-            print("Commiting database successed")
+        if execute_sql_file(connection, sql_filename):
+            logger.info("Commiting database successed")
     except Exception as e:
-        print(f"Failure when access/init database: {e}")
+        logger.error(f"Failure when access/init database: {e}", exc_info=True)
 
 
 def init_postgres_database(connection):
     try:
         if not connection:
             return
-        cursor = connection.cursor()
-        if execute_sql_file(cursor, postgres_filename):
-            connection.commit()
-            print("Commiting database successed")
+        if execute_sql_file(connection, postgres_filename):
+            logger.info("Commiting database successed")
     except Exception as e:
-        print(f"Failure when access/init database: {e}")
+        logger.error(f"Failure when access/init database: {e}")
 
 
 if __name__ == "__main__":
-    connection = get_mysql_connection()
-    cursor = connection.cursor()
-    if execute_sql_file(cursor, sql_filename):
+    connection = get_postgres_connection()
+    if init_postgres_database(connection):
         connection.commit()
