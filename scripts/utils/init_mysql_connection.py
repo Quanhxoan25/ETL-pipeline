@@ -1,9 +1,9 @@
 from sqlalchemy import create_engine
 import os
 from dotenv import load_dotenv
-import pymysql
+from airflow.models import Variable
+
 import requests
-import psycopg2
 
 # Doc cac bien moi truong tu .env
 load_dotenv()
@@ -48,7 +48,8 @@ def get_postgres_connection():
 
 
 def get_api_connection(location):
+    api_key = Variable.get("WEATHER_API_KEY")
     BASE_URL = "https://api.weatherapi.com"
-    api_url = f"{BASE_URL}/v1/current.json?key={os.getenv('WEATHER_API_KEY')}&q={location}&aqi=no"
+    api_url = f"{BASE_URL}/v1/current.json?key={api_key}&q={location}&aqi=no"
 
     return requests.get(api_url)

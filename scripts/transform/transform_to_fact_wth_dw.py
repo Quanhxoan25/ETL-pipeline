@@ -4,7 +4,43 @@ import pandas as pd
 import json
 from utils.init_mysql_connection import get_mysql_connection, get_postgres_connection
 from filters.validate_weather_data import validate_weather_data
+import os
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+file_name = os.path.join(current_dir, "..", "..", "assets",
+                         "data", "db_metadata.json")
+
+def get_last_processed_id():
+    if os.path.exists(file_name):
+        try: 
+            with open(file_name, "r") as f: 
+                metadata = json.load(f)
+                return metadata.get("last_processed_fact_id", 0)
+        except Exception as e:
+            logger.warning(f"Can't read file json {e}")
+    return 0 
+
+def save_last_id(last_id):
+    try:
+        # Đọc dữ liệu hiện tại trước để tránh ghi đè mất key của Location
+        metadata = {}
+        if os.path.exists(file_name):
+            try:
+                with open(file_name, "r") as f:
+                    metadata = json.load(f)
+            except Exception:
+                pass
+                
+        # Chỉ cập nhật key của weather
+        metadata["last_processed_id_weather"] = last_id
+        
+        os.makedirs(os.path.dirname(file_name), exist_ok=True)
+        with open(file_name, 'w') as f:
+            json.dump(metadata, f, indent=4) # indent=4 cho đẹp, dễ đọc
+        logger.info(f"Saving new weather index: {last_id}")
+    except Exception as e:
+        logger.error(f"Cant write file: {e}")
 
 def check_and_expand_postgres_schema(postgres_connection, target_field, table_name):
     query = text(f"""
@@ -19,7 +55,7 @@ def check_and_expand_postgres_schema(postgres_connection, target_field, table_na
 
     def get_data_type_by_name(col_name):
         col_name = col_name.lower()
-        if "temp" in col_name or "feel" in col_name or "speed" in col_name or "pre" "precip" in col_name or "uv" in col_name:
+        if "temp" in col_name or "feel" in col_name or "speed" in col_name or "pre" in col_name or "uv" in col_name:
             return "DECIMAL(9,2)"
         elif "humidity" in col_name or "cloud" in col_name or "chance" in col_name:
             return "INT"
@@ -81,21 +117,31 @@ def transform_and_load_to_dw(mysql_connetion, postgres_connection):
         )
         check_and_expand_postgres_schema(
             postgres_connection, column_fields, "fact_historical_weather")
-        mysql_query = "SELECT source, raw_data FROM data_raw"
+        mysql_query = "SELECT indexing, source, raw_data FROM data_raw WHERE indexing > %(last_id)s ORDER BY indexing ASC"
         chunk_size = 20000
         total_row = 0
+        last_processed_id = get_last_processed_id()
+        max_id = last_processed_id
 
         logger.info("Reading raw data from MySQL database")
         mysql_chunks = pd.read_sql(
-            mysql_query, mysql_connetion, chunksize=chunk_size)
+            mysql_query, mysql_connetion, params={"last_id": last_processed_id}, chunksize=chunk_size)
+        
+        has_new_data = False
 
         for i, chunk in enumerate(mysql_chunks):
             parsed_record = []
             for _, row in chunk.iterrows():
                 try:
                     data = json.loads(row['raw_data'])
+                    row_id = int(row['indexing'])
                     source = row['source']
+
+                    if row_id > max_id:
+                        max_id = row_id
+
                     parsed_row = {}
+
                     if source == "CSV":
                         for field in column_fields:
                             if field == 'city_name':
@@ -184,6 +230,7 @@ def transform_and_load_to_dw(mysql_connetion, postgres_connection):
                 total_row += len(parsed_record)
                 logger.info(
                     f"Processed chunk {i+1}, total rows processed: {total_row}")
+        if max_id > last_processed_id: save_last_id(max_id)
         logger.info("Transforming and loading complete successfully")
     except Exception as e:
         logger.error(f"🚨 Lỗi hệ thống: {e}", exc_info=True)

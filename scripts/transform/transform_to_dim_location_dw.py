@@ -3,10 +3,47 @@ from utils.logger import logger
 import pandas as pd
 import json
 from utils.init_mysql_connection import get_mysql_connection, get_postgres_connection
+import os
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+file_name = os.path.join(current_dir, "..", "..", "assets",
+                         "data", "db_metadata.json")
+
+def get_last_processed_id():
+    if os.path.exists(file_name):
+        try: 
+            with open(file_name, "r") as f: 
+                metadata = json.load(f)
+                return metadata.get("last_processed_dim_id", 0)
+        except Exception as e:
+            logger.warning(f"Can't read file json {e}")
+    return 0 
+
+def save_last_id(last_id):
+    try:
+        # Đọc dữ liệu hiện tại trước để tránh ghi đè mất key của Location
+        metadata = {}
+        if os.path.exists(file_name):
+            try:
+                with open(file_name, "r") as f:
+                    metadata = json.load(f)
+            except Exception:
+                pass
+                
+        # Chỉ cập nhật key của weather
+        metadata["last_processed_dim_id"] = last_id
+        
+        os.makedirs(os.path.dirname(file_name), exist_ok=True)
+        with open(file_name, 'w') as f:
+            json.dump(metadata, f, indent=4) # indent=4 cho đẹp, dễ đọc
+        logger.info(f"Saving new weather index: {last_id}")
+    except Exception as e:
+        logger.error(f"Cant write file: {e}")
 
 def transform_to_dim_location_dw(mysql_connection, postgres_connection):
     logger.info("Starting transform to dim location data warehouse")
+    last_processed_id = get_last_processed_id()
     city_column_fields = [
         "city_name",
         "country",
@@ -37,17 +74,22 @@ def transform_to_dim_location_dw(mysql_connection, postgres_connection):
         ON CONFLICT (country) DO NOTHING;
     """)
 
-    mysql_query = "SELECT source, raw_data from data_raw"
+    mysql_query = "SELECT indexing, source, raw_data from data_raw where indexing > %(last_id)s ORDER BY indexing ASC"
     chunk_size = 20000
     total_rows = 0
+    max_id = last_processed_id
+    has_new_data = False
 
     logger.info("Reading data from raw database")
     mysql_chunks = pd.read_sql(
-        mysql_query, mysql_connection, chunksize=chunk_size)
+        mysql_query, mysql_connection, params={"last_id": last_processed_id},chunksize=chunk_size)
 
     for i, chunk in enumerate(mysql_chunks):
+        has_new_data = True
         city_parsed_records = []
         country_parsed_records = []
+
+        max_id = int(chunk['indexing'].max())
         for _, row in chunk.iterrows():
             try:
                 data = json.loads(row["raw_data"])
@@ -88,29 +130,51 @@ def transform_to_dim_location_dw(mysql_connection, postgres_connection):
                 logger.error(
                     f"Troubleshot when reading data from raw database: {e}", exc_info=True)
                 continue
-        df_city = pd.DataFrame(city_parsed_records).dropna(
-            subset=["city_name", "country"])
+
+        if city_parsed_records:
+            df_city = pd.DataFrame(city_parsed_records).dropna(subset=["city_name", "country"])
+        else:
+            df_city = pd.DataFrame(columns=["city_name", "country", "lat_n", "lon_n"])
         df_country = pd.DataFrame(
             country_parsed_records).dropna(subset=["country"])
 
+        if country_parsed_records:
+            df_country = pd.DataFrame(country_parsed_records).dropna(subset=["country"])
+        else:
+            df_country = pd.DataFrame(columns=["country", "timezone"])
+
+        logger.info("Uploading chunks to staging table")
+
         if df_city.empty and df_country.empty:
+            logger.info(f"Chunk {i+1} has no valid data to insert. Skipping...")
             continue
 
         logger.info("Uploading chunks to staging table")
 
-        df_city.to_sql(
-            "staging_dim_city",
-            con=postgres_connection,
-            if_exists="replace",
-            index=False
-        )
+        if not df_city.empty:
+            df_city.to_sql(
+                "staging_dim_city",
+                con=postgres_connection,
+                if_exists="replace",
+                index=False
+            )
 
-        df_country.to_sql(
-            "staging_dim_country",
-            con=postgres_connection,
-            if_exists="replace",
-            index=False
-        )
+        if not df_country.empty:
+            df_country.to_sql(
+                "staging_dim_country",
+                con=postgres_connection,
+                if_exists="replace",
+                index=False
+            )
+
+        if not df_country.empty:
+            postgres_connection.execute(
+                text("""
+                INSERT INTO dim_country (country, timezone)
+                SELECT DISTINCT country, timezone FROM staging_dim_country
+                ON CONFLICT (country) DO NOTHING;
+            """)
+            )
 
         if not df_country.empty:
             postgres_connection.execute(
@@ -150,7 +214,13 @@ def transform_to_dim_location_dw(mysql_connection, postgres_connection):
         total_rows += len(chunk)
         logger.info(
             f"Processed chunk {i+1}, total rows processed: {total_rows}")
-    logger.info("Transforming and loading complete successfully")
+    if has_new_data:
+        save_last_id(max_id)
+        logger.info("Transforming and loading complete successfully")
+        postgres_connection.execute(text("truncate table staging_dim_country"))
+        postgres_connection.execute(text("truncate table staging_dim_city"))
+    else:
+        logger.info("Dont have new data")
 
 
 if __name__ == "__main__":

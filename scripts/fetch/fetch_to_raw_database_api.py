@@ -40,20 +40,26 @@ def fetch_to_raw_database_by_api(mysql_connection, pg_connection):
         params = []
         for city in cities:
             location = city
-            response = get_api_connection(location)
-
-            if response.status_code == 200:
+            try:
+                response = get_api_connection(location)
+                if response.status_code != 200:
+                    logger.error(f"API Error for {location} (Status {response.status_code}): {response.text}")
+                    continue
                 data = response.json()
-                data['city'] = location
-
                 raw_data = json.dumps(data, ensure_ascii=False)
-
                 params.append({
                     "source": "API",
                     "raw_data": raw_data
-                })
+                })  
                 logger.info(f"Succesfully commit {location}")
-                mysql_connection.execute(insert_query, params)
+            except Exception as e: 
+                logger.error(f"Have trouble in {location} {e}")
+                continue
+        if params: 
+            mysql_connection.execute(insert_query, params)
+            logger.info(f"Successfully committed {len(params)} records to data_raw.")
+        else: 
+            logger.warning("No data commit to database")
     except Exception as e:
         logger.critical(f"Somethings went wrongs: {e}", exc_info=True)
 

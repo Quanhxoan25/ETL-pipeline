@@ -1,9 +1,3 @@
-DROP table if exists staging_dim_country;
-DROP table if exists staging_dim_city;
-DROP table if exists dim_country;
-DROP table if exists dim_city;
-DROP table if exists fact_historical_weather;
-
 CREATE TABLE IF NOT EXISTS staging_dim_country (
     country VARCHAR(255),
     timezone VARCHAR(100)
