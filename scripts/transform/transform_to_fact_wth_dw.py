@@ -16,7 +16,7 @@ def get_last_processed_id():
         try: 
             with open(file_name, "r") as f: 
                 metadata = json.load(f)
-                return metadata.get("last_processed_fact_id", 0)
+                return metadata.get("last_processed_id_weather", 0)
         except Exception as e:
             logger.warning(f"Can't read file json {e}")
     return 0 
@@ -130,7 +130,11 @@ def transform_and_load_to_dw(mysql_connetion, postgres_connection):
         has_new_data = False
 
         for i, chunk in enumerate(mysql_chunks):
+            if chunk.empty:
+                continue
+            has_new_data = True
             parsed_record = []
+            chunk_max_id = int(chunk['indexing'].max())
             for _, row in chunk.iterrows():
                 try:
                     data = json.loads(row['raw_data'])
@@ -165,7 +169,7 @@ def transform_and_load_to_dw(mysql_connetion, postgres_connection):
                             else:
                                 val = data.get(field)
 
-                            if val is not None:
+                            if val is not None and str(val).strip() != "":
                                 if field in ['humidity', 'cloud_cover', 'chance_of_rain', 'chance_of_snow']:
                                     parsed_row[field] = int(val)
                                 elif field in ['temperature', 'feels_like', 'wind_speed', 'precipitation', 'uv_index']:
@@ -176,38 +180,27 @@ def transform_and_load_to_dw(mysql_connetion, postgres_connection):
                                 parsed_row[field] = None
 
                     elif source == "API":
-                        location = data.get("location")
-                        weather = data.get("current")
+                        location = data.get("location") or {}
+                        weather = data.get("current") or {}
+
+                        mapping = {
+                            'city_name': location.get('name'),
+                            'country': location.get('country'),
+                            'updated_time': weather.get('last_updated'),
+                            'temperature': weather.get('temp_c'),
+                            'feels_like': weather.get('feelslike_c'),
+                            'cloud_cover': weather.get('cloud'),
+                            'precipitation': weather.get('precip_mm'),
+                            'wind_speed': weather.get('wind_kph'),
+                            'condition': weather.get('condition').get('text') if isinstance(weather.get('condition'), dict) else None,
+                            'uv_index': weather.get('uv'),
+                            "humidity": weather.get("humidity"),
+                            "chance_of_snow": weather.get("chance_of_snow"),
+                            "chance_of_rain": weather.get("chance_of_rain")
+                        }
 
                         for field in column_fields:
-                            if field == 'city_name':
-                                val = location.get('name')
-                            elif field == "country":
-                                val = location.get('country')
-                            elif field == 'updated_time':
-                                val = weather.get('last_updated')
-                            elif field == 'temperature':
-                                val = weather.get('temp_c')
-                            elif field == 'feels_like':
-                                val = weather.get('feelslike_c')
-                            elif field == 'cloud_cover':
-                                val = weather.get('cloud')
-                            elif field == 'precipitation':
-                                val = weather.get('precip_mm')
-                            elif field == 'wind_speed':
-                                val = weather.get('wind_kph')
-                            elif field == "condition":
-                                val = weather.get('condition').get('text')
-                            elif field == "uv_index":
-                                val = weather.get('uv')
-                            elif field == "humidity":
-                                val = weather.get("humidity")
-                            elif field == "chance_of_snow":
-                                val = weather.get("chance_of_snow")
-                            elif field == "chance_of_rain":
-                                val = weather.get("chance_of_rain")
-                            else:
-                                val = data.get(field)
+                            val = mapping.get(field)
 
                             if val is not None:
                                 if field in ['humidity', 'cloud_cover', 'chance_of_rain', 'chance_of_snow']:
@@ -218,22 +211,30 @@ def transform_and_load_to_dw(mysql_connetion, postgres_connection):
                                     parsed_row[field] = str(val)
                             else:
                                 parsed_row[field] = None
+
                     if validate_weather_data(parsed_row):
                         parsed_record.append(parsed_row)
+
                 except Exception as e:
                     logger.info(
                         f"Troubleshot when reading data from raw database: {e}")
                     continue
+
             if parsed_record:
                 postgres_connection.execute(insert_query, parsed_record)
 
                 total_row += len(parsed_record)
                 logger.info(
                     f"Processed chunk {i+1}, total rows processed: {total_row}")
-        if max_id > last_processed_id: save_last_id(max_id)
-        logger.info("Transforming and loading complete successfully")
+                
+        if has_new_data:
+            save_last_id(max_id)
+            logger.info("Transforming and loading complete successfully")
+        else:
+            logger.info("Dont have new data")
+
     except Exception as e:
-        logger.error(f"🚨 Lỗi hệ thống: {e}", exc_info=True)
+        logger.error(f"System error: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

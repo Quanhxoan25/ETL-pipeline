@@ -35,26 +35,12 @@ with DAG(
         # Đọc kết nối bảo mật từ giao diện Airflow
         mysql_conn = BaseHook.get_connection('my_mysql_raw')
 
-        print(mysql_conn.host)
-        print(mysql_conn.port)
-        print(mysql_conn.login)
-        print(mysql_conn.password)
-        print(mysql_conn.schema)
         postgres_conn = BaseHook.get_connection('my_postgres_dw')
-
-        print(postgres_conn.host)
-        print(postgres_conn.port)
-        print(postgres_conn.login)
-        print(postgres_conn.password)
-        print(postgres_conn.schema)
 
         mysql_str = f"mysql+pymysql://{mysql_conn.login}:{mysql_conn.password}@{mysql_conn.host}:{mysql_conn.port}/{mysql_conn.schema}"
 
-        print(mysql_str)
         postgres_str = f"postgresql+psycopg2://{postgres_conn.login}:{postgres_conn.password}@{postgres_conn.host}:{postgres_conn.port}/{postgres_conn.schema}"
-        print(postgres_str)
-
-        # Gọi hàm tổng để chạy toàn bộ quy trình
+    
         run_location_transform(mysql_str, postgres_str, **kwargs)
 
     run_pipeline_task = PythonOperator(

@@ -23,7 +23,7 @@ create table IF NOT EXISTS dim_city(
 	lat_n DECIMAL (9,2), 
 	lon_n DECIMAL (9,2),
 
-	CONSTRAINT dim_city_unique PRIMARY KEY (lat_n, lon_n)
+	CONSTRAINT dim_city_unique PRIMARY KEY (city_name, country)
 );
 
 CREATE INDEX IF NOT EXISTS idx_dim_city_name_country ON dim_city (city_name, country);
@@ -39,7 +39,7 @@ create table IF NOT EXISTS fact_historical_weather (
 	humidity INT,
 	wind_speed DECIMAL(9, 2),
 	precipitation DECIMAL(9, 2),
-	cloud_cover INT,
+	cloud_cover INT,	
 	uv_index DECIMAL(9, 2),
 	chance_of_rain INT,
 	chance_of_snow INT,

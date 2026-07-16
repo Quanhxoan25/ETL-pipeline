@@ -65,7 +65,7 @@ def transform_to_dim_location_dw(mysql_connection, postgres_connection):
     dim_city_query = text(f"""
         INSERT INTO dim_city ({city_column_str})
         VALUES ({city_params_str})
-        ON CONFLICT (lat_n, lon_n) DO NOTHING;
+        ON CONFLICT (city_name, country) DO NOTHING;
     """)
 
     dim_country_query = text(f"""
@@ -85,6 +85,10 @@ def transform_to_dim_location_dw(mysql_connection, postgres_connection):
         mysql_query, mysql_connection, params={"last_id": last_processed_id},chunksize=chunk_size)
 
     for i, chunk in enumerate(mysql_chunks):
+        if chunk.empty:
+            logger.info(f"Chunk {i + 1} is empty")
+            continue 
+
         has_new_data = True
         city_parsed_records = []
         country_parsed_records = []
@@ -135,13 +139,14 @@ def transform_to_dim_location_dw(mysql_connection, postgres_connection):
             df_city = pd.DataFrame(city_parsed_records).dropna(subset=["city_name", "country"])
         else:
             df_city = pd.DataFrame(columns=["city_name", "country", "lat_n", "lon_n"])
-        df_country = pd.DataFrame(
-            country_parsed_records).dropna(subset=["country"])
 
         if country_parsed_records:
             df_country = pd.DataFrame(country_parsed_records).dropna(subset=["country"])
         else:
             df_country = pd.DataFrame(columns=["country", "timezone"])
+        
+        df_city = df_city.where(pd.notnull(df_city), None)
+        df_country = df_country.where(pd.notnull(df_country), None)
 
         logger.info("Uploading chunks to staging table")
 
@@ -165,15 +170,6 @@ def transform_to_dim_location_dw(mysql_connection, postgres_connection):
                 con=postgres_connection,
                 if_exists="replace",
                 index=False
-            )
-
-        if not df_country.empty:
-            postgres_connection.execute(
-                text("""
-                INSERT INTO dim_country (country, timezone)
-                SELECT DISTINCT country, timezone FROM staging_dim_country
-                ON CONFLICT (country) DO NOTHING;
-            """)
             )
 
         if not df_country.empty:

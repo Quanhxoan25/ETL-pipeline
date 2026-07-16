@@ -28,7 +28,7 @@ def get_mysql_connection():
         return None
 
 
-def get_postgres_connection():
+def get_postgres_connection(pool_size, max_overflow, pool_recycle):
     try:
         host = os.getenv("PG_HOST", "localhost")
         database = os.getenv("PG_DATABASE")
@@ -38,9 +38,9 @@ def get_postgres_connection():
 
         DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
 
-        engine = create_engine(DATABASE_URL)
+        engine = create_engine(DATABASE_URL, pool_size=pool_size,max_overflow=max_overflow, pool_recycle=pool_recycle)
 
-        return engine.connect()
+        return engine
 
     except Exception as e:
         print(f"Having troubleshot while connecting to database {e}")
